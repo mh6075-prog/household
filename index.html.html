@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>가을이의 스마트 가계부</title>
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--ink:#1e293b;--muted:#64748b;--line:#e2e8f0;--blue:#2563eb;--green:#059669;--red:#dc2626}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif}
+.wrap{max-width:1050px;margin:auto;padding:22px 16px 48px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+h1{font-size:25px;margin:0 0 5px}.sub{color:var(--muted);font-size:13px}.month{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:white;font:inherit}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}.card,.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:17px;box-shadow:0 2px 8px #0f172a08}
+.kicker{font-size:13px;color:var(--muted)}.amount{font-size:25px;font-weight:750;margin-top:8px}.income{color:var(--green)}.expense{color:var(--red)}
+.main{display:grid;grid-template-columns: minmax(270px, .85fr) minmax(0,1.5fr);gap:14px}.panel h2{font-size:17px;margin:0 0 14px}
+label{display:block;font-size:13px;color:var(--muted);margin:11px 0 5px}input,select,button{font:inherit}input,select{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink)}
+.type{display:flex;gap:8px}.type button{flex:1;padding:9px;border:1px solid var(--line);background:white;border-radius:9px;cursor:pointer}.type button.active{background:#eff6ff;border-color:#93c5fd;color:#1d4ed8;font-weight:700}
+.primary{width:100%;border:0;border-radius:10px;padding:11px;background:var(--blue);color:#fff;font-weight:700;margin-top:15px;cursor:pointer}.secondary{border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 11px;cursor:pointer}
+.toolbar{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}.toolbar input{max-width:180px}
+.list{width:100%;border-collapse:collapse;font-size:14px}.list th,.list td{padding:11px 7px;border-bottom:1px solid var(--line);text-align:left}.list th{color:var(--muted);font-size:12px;font-weight:600}.list td.num{text-align:right;white-space:nowrap}.del{border:0;background:#fff1f2;color:#be123c;border-radius:7px;padding:5px 8px;cursor:pointer}
+.chartrow{display:flex;align-items:center;gap:10px;margin:12px 0;font-size:13px}.chartlabel{width:66px;color:var(--muted)}.track{height:12px;background:#f1f5f9;border-radius:20px;flex:1;overflow:hidden}.bar{height:100%;border-radius:20px;background:#f87171}.bar.in{background:#34d399}.chartval{width:100px;text-align:right;font-variant-numeric:tabular-nums}
+.empty{color:var(--muted);text-align:center;padding:25px 8px;font-size:14px}.note{margin-top:14px;color:var(--muted);font-size:12px;line-height:1.6}
+@media(max-width:760px){.cards{grid-template-columns:1fr}.main{grid-template-columns:1fr}.amount{font-size:22px}.wrap{padding:16px 12px 35px}.list{font-size:12px}.list th,.list td{padding:9px 4px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div><h1>가을이의 스마트 가계부</h1><div class="sub">수입과 지출을 기록하고 한 달의 흐름을 확인해 보세요.</div></div>
+    <input class="month" id="month" type="month" aria-label="조회 월">
+  </header>
+  <section class="cards">
+    <div class="card"><div class="kicker">이번 달 수입</div><div class="amount income" id="incomeTotal">0원</div></div>
+    <div class="card"><div class="kicker">이번 달 지출</div><div class="amount expense" id="expenseTotal">0원</div></div>
+    <div class="card"><div class="kicker">이번 달 잔액</div><div class="amount" id="balanceTotal">0원</div></div>
+  </section>
+  <section class="main">
+    <div class="panel">
+      <h2>내역 입력</h2>
+      <div class="type"><button type="button" id="incomeBtn" class="active">수입</button><button type="button" id="expenseBtn">지출</button></div>
+      <form id="entryForm">
+        <label for="date">날짜</label><input id="date" type="date" required>
+        <label for="category">항목</label>
+        <select id="category">
+          <option>급여</option><option>연금</option><option>이자·배당</option><option>기타수입</option>
+        </select>
+        <label for="amount">금액(원)</label><input id="amount" type="number" min="1" step="1" placeholder="예: 50000" required>
+        <label for="memo">내용(선택)</label><input id="memo" type="text" maxlength="60" placeholder="예: 점심 식사">
+        <button class="primary" type="submit">내역 저장</button>
+      </form>
+      <div class="note">※ 입력한 내용은 현재 사용 중인 브라우저에 저장됩니다. 브라우저 데이터 삭제 시 기록도 사라질 수 있으니 엑셀로 정기 백업하세요.</div>
+    </div>
+    <div style="display:grid;gap:14px;align-content:start">
+      <div class="panel">
+        <div class="toolbar"><h2 style="margin:0">월별 지출 현황</h2><span class="sub">항목별 합계</span></div>
+        <div id="chart"><div class="empty">아직 지출 내역이 없습니다.</div></div>
+      </div>
+      <div class="panel">
+        <div class="toolbar"><h2 style="margin:0">거래 내역</h2><button class="secondary" id="exportBtn">엑셀 다운로드</button></div>
+        <div style="overflow-x:auto">
+          <table class="list"><thead><tr><th>날짜</th><th>구분</th><th>항목·내용</th><th style="text-align:right">금액</th><th></th></tr></thead><tbody id="rows"></tbody></table>
+          <div class="empty" id="noRows">선택한 달의 내역이 없습니다.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+<script>
+const KEY='autumn_household_book_v1';
+let entries=[];
+try{entries=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){entries=[]}
+let currentType='수입';
+const $=id=>document.getElementById(id);
+const today=new Date();
+const ymd=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+$('month').value=ymd(today).slice(0,7);$('date').value=ymd(today);
+const money=n=>new Intl.NumberFormat('ko-KR').format(n)+'원';
+function save(){localStorage.setItem(KEY,JSON.stringify(entries));render()}
+function setType(type){
+ currentType=type;
+ $('incomeBtn').classList.toggle('active',type==='수입');$('expenseBtn').classList.toggle('active',type==='지출');
+ const opts=type==='수입'?['급여','연금','이자·배당','기타수입']:['식비','교통비','주거·관리비','통신비','의료·건강','쇼핑','문화·여가','경조사','기타지출'];
+ $('category').innerHTML=opts.map(x=>`<option>${x}</option>`).join('');
+}
+$('incomeBtn').onclick=()=>setType('수입');$('expenseBtn').onclick=()=>setType('지출');
+$('entryForm').addEventListener('submit',e=>{
+ e.preventDefault();const amount=Number($('amount').value);
+ if(!Number.isSafeInteger(amount)||amount<=0){alert('금액은 1원 이상의 정수로 입력해 주세요.');return}
+ entries.push({id:Date.now()+Math.random(),date:$('date').value,type:currentType,category:$('category').value,amount,memo:$('memo').value.trim()});
+ $('amount').value='';$('memo').value='';save();
+});
+$('month').addEventListener('change',render);
+function render(){
+ const month=$('month').value;const list=entries.filter(x=>x.date.startsWith(month)).sort((a,b)=>b.date.localeCompare(a.date));
+ const income=list.filter(x=>x.type==='수입').reduce((s,x)=>s+x.amount,0);
+ const expense=list.filter(x=>x.type==='지출').reduce((s,x)=>s+x.amount,0);
+ $('incomeTotal').textContent=money(income);$('expenseTotal').textContent=money(expense);$('balanceTotal').textContent=money(income-expense);
+ $('balanceTotal').style.color=income-expense<0?'var(--red)':'var(--ink)';
+ $('rows').innerHTML=list.map(x=>`<tr><td>${x.date}</td><td class="${x.type==='수입'?'income':'expense'}">${x.type}</td><td>${escapeHtml(x.category)}${x.memo?' · '+escapeHtml(x.memo):''}</td><td class="num ${x.type==='수입'?'income':'expense'}">${x.type==='수입'?'+':'−'}${money(x.amount)}</td><td><button class="del" data-id="${x.id}">삭제</button></td></tr>`).join('');
+ $('noRows').style.display=list.length?'none':'block';
+ document.querySelectorAll('.del').forEach(b=>b.onclick=()=>{if(confirm('이 내역을 삭제할까요?')){entries=entries.filter(x=>String(x.id)!==b.dataset.id);save()}});
+ const groups={};list.filter(x=>x.type==='지출').forEach(x=>groups[x.category]=(groups[x.category]||0)+x.amount);
+ const arr=Object.entries(groups).sort((a,b)=>b[1]-a[1]);const max=Math.max(1,...arr.map(x=>x[1]));
+ $('chart').innerHTML=arr.length?arr.map(([name,val])=>`<div class="chartrow"><div class="chartlabel">${escapeHtml(name)}</div><div class="track"><div class="bar" style="width:${val/max*100}%"></div></div><div class="chartval">${money(val)}</div></div>`).join(''):'<div class="empty">아직 지출 내역이 없습니다.</div>';
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+$('exportBtn').onclick=()=>{
+ const header=['날짜','구분','항목','금액(원)','내용'];
+ const data=[header,...entries.slice().sort((a,b)=>a.date.localeCompare(b.date)).map(x=>[x.date,x.type,x.category,x.amount,x.memo||''])];
+ const csv='\uFEFF'+data.map(row=>row.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+ const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);
+ const a=document.createElement('a');a.href=url;a.download='가을이의_가계부_'+ymd(today)+'.csv';a.click();URL.revokeObjectURL(url);
+};
+render();
+</script>
+</body>
+</html>
